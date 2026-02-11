@@ -1,4 +1,4 @@
-name: Windows RDP (Updated)
+name: Windows RDP (Fixed)
 
 on:
   workflow_dispatch:
@@ -9,38 +9,36 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Set RDP User Password
+      - name: Set RDP Password
         run: |
           net user runneradmin P@ssw0rd123
 
-      - name: Enable Remote Desktop
+      - name: Enable RDP
         run: |
           reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: Download ngrok v3
+      - name: Download & Extract ngrok v3
         run: |
           Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
-          Expand-Archive ngrok.zip
-          Move-Item .\ngrok.exe C:\ngrok.exe
+          Expand-Archive ngrok.zip -Force
+          Get-ChildItem
 
-      - name: Configure ngrok AuthToken
+      - name: Configure ngrok
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          C:\ngrok.exe config add-authtoken $Env:NGROK_AUTH_TOKEN
+          $ngrokPath = (Get-ChildItem -Recurse -Filter ngrok.exe).FullName
+          & $ngrokPath config add-authtoken $Env:NGROK_AUTH_TOKEN
+          Start-Process -FilePath $ngrokPath -ArgumentList "tcp 3389"
 
-      - name: Start ngrok Tunnel
-        run: |
-          Start-Process -FilePath "C:\ngrok.exe" -ArgumentList "tcp 3389" -NoNewWindow
-
-      - name: Show ngrok TCP Address
+      - name: Show Tunnel Info
         run: |
           Start-Sleep -Seconds 15
           Invoke-WebRequest http://127.0.0.1:4040/api/tunnels -OutFile tunnels.json
           Get-Content tunnels.json
 
-      - name: Keep Runner Alive
+      - name: Keep Alive
         run: |
-          Write-Host "RDP is running..."
+          Write-Host "RDP Running..."
           Start-Sleep -Seconds 21600
