@@ -12,7 +12,6 @@ jobs:
       - name: Set RDP User Password
         run: |
           net user runneradmin P@ssw0rd123
-          net localgroup administrators runneradmin /add
 
       - name: Enable Remote Desktop
         run: |
